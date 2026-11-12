@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="sec">Votes</h2><p class="lede">{{ vote_count }} votes total; the 200 most recent:</p>
+<table><tr><th>when</th><th>voter</th><th>pair</th><th class="num">magnitude</th></tr>
+{% for v in rows %}
+<tr><td>{{ v.when }}</td><td>{{ v.voter }}</td><td>{{ v.left }} vs {{ v.right }}</td><td class="num">{{ v.magnitude }}</td></tr>
+{% endfor %}
+</table>
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="sec">{{ user_name }}</h2>
+<p class="lede">{{ votes }} votes cast, {{ items }} items posted. Top items:</p>
+<table><tr><th class="num">rank</th><th>item</th></tr>
+{% for r in rows %}
+<tr><td class="num">{{ r.rank }}</td><td>{{ r.title }}</td></tr>
+{% endfor %}
+</table>
+{% endblock %}

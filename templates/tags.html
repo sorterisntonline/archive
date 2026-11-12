@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="sec">Categories</h2>
+<table><tr><th>category</th><th class="num">items</th><th>owner</th></tr>
+{% for t in rows %}
+<tr><td><a href="tags/{{ t.page }}.html">{{ t.title }}</a></td><td class="num">{{ t.items }}</td><td class="mut">{{ t.owner }}</td></tr>
+{% endfor %}
+</table>
+{% endblock %}

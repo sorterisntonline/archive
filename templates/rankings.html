@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="sec">Rankings</h2><p class="lede">Top 100 of {{ item_count }} items by the site's random-walk score (sorter2's algorithm, ported).</p>
+<table><tr><th class="num">rank</th><th>item</th><th>posted by</th><th class="num">score</th></tr>
+{% for r in rows %}
+<tr><td class="num">{{ r.rank }}</td><td>{{ r.title }}</td><td class="mut">{{ r.owner }}</td><td class="num">{{ r.score }}</td></tr>
+{% endfor %}
+</table>
+{% endblock %}

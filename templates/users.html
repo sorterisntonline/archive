@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="sec">Users</h2>
+<table><tr><th>voter</th><th class="num">votes</th><th class="num">items posted</th></tr>
+{% for u in rows %}
+<tr><td><a href="users/{{ u.page }}.html">{{ u.name }}</a></td><td class="num">{{ u.votes }}</td><td class="num">{{ u.items }}</td></tr>
+{% endfor %}
+</table>
+{% endblock %}

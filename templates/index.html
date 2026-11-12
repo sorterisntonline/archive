@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="hero"><span class="kicker">Sorter's public record, frozen as a static index.</span></h1>
+<div class="duet">
+ <div class="side"><div class="rk">rank 1</div><div class="t">{{ top1.title }}</div><div class="mut small">by {{ top1.owner }} · score {{ top1.score }}</div></div>
+ <div class="vs">vs</div>
+ <div class="side"><div class="rk">rank 2</div><div class="t">{{ top2.title }}</div><div class="mut small">by {{ top2.owner }} · score {{ top2.score }}</div></div>
+</div>
+<p class="lede" style="margin-top:26px">Sorter was a site where people submitted things and settled which deserved to sit higher by voting head-to-head. This archive keeps the data: every category, voter, and vote, plus the consensus order computed by the site's own random walk. Nothing here loads a script; every page is written out in advance.</p>
+<div class="stat">
+ <div><b>{{ user_count }}</b><span>registered users</span></div>
+ <div><b>{{ item_count }}</b><span>items posted</span></div>
+ <div><b>{{ vote_count }}</b><span>votes cast</span></div>
+ <div><b>{{ tag_count }}</b><span>categories</span></div>
+</div>
+<h2 class="sec">Categories</h2>
+<ul class="taglist">
+{% for t in tags %}
+<li><a href="tags/{{ t.page }}.html">{{ t.title }}</a> <span class="mut small">({{ t.items }})</span></li>
+{% endfor %}
+</ul>
+<h2 class="sec">Most active voters</h2>
+<table><tr><th>voter</th><th class="num">votes</th><th class="num">items posted</th></tr>
+{% for u in top_users %}
+<tr><td><a href="users/{{ u.page }}.html">{{ u.name }}</a></td><td class="num">{{ u.votes }}</td><td class="num">{{ u.items }}</td></tr>
+{% endfor %}
+</table>
+<h2 class="sec">Votes by day</h2>
+<div class="hist">
+{% for d in hist_days %}<div title="{{ d.day }}: {{ d.count }}" style="height:{{ d.height }}%"></div>{% endfor %}
+</div>
+<p class="mut small">One bar per day with votes, oldest to newest. Peak day: {{ peak_day }} ({{ peak_count }} votes).</p>
+{% endblock %}
