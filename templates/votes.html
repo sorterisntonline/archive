@@ -1,9 +1,14 @@
 {% extends "base.html" %}
 {% block content %}
-<h2 class="sec">Votes</h2><p class="lede">{{ vote_count }} votes total; the 200 most recent:</p>
-<table><tr><th>when</th><th>voter</th><th>pair</th><th class="num">magnitude</th></tr>
+<h2 class="sec">Votes</h2>
+<table><tr><th>when</th><th>voter</th><th>pair</th><th>left&nbsp;<span class="mut">magnitude</span></th></tr>
 {% for v in rows %}
-<tr><td>{{ v.when }}</td><td>{{ v.voter }}</td><td>{{ v.left }} vs {{ v.right }}</td><td class="num">{{ v.magnitude }}</td></tr>
+<tr><td><span title="{{ v.when_title }}">{{ v.when }}</span></td><td><a href="users/{{ v.voter_slug }}">{{ v.voter }}</a></td><td>{{ v.left }} vs {{ v.right }}</td><td><span class="slide"><span class="fill l" style="width:{{ v.magnitude }}%"></span><span class="fill r" style="width:{{ v.magnitude }}"></span></span></td></tr>
 {% endfor %}
 </table>
+<div class="pager">
+{% if page > 1 %}<a href="?page={{ page - 1 }}">Previous</a>{% endif %}
+<span class="mut small">Page {{ page }} of {{ pages }}</span>
+{% if page < pages %}<a href="?page={{ page + 1 }}">Next</a>{% endif %}
+</div>
 {% endblock %}

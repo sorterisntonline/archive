@@ -3,12 +3,25 @@ name = "sorter-archive"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "sorter_archive"
+path = "src/lib.rs"
+
+[[bin]]
+name = "archive"
+path = "src/archive_bin.rs"
+
 [[bin]]
 name = "generate"
 path = "src/main.rs"
 
 [dependencies]
 askama = "0.14"
+axum = "0.8"
 chrono = "0.4"
+durable = { git = "https://github.com/tommy-mor/durable.git", rev = "f99e95300d1bcd1ae96c9f671a1dd722330765f0", default-features = false, features = ["backend-redb"] }
 postgres = "0.19"
 rand = "0.8"
+serde = { version = "1", features = ["derive"] }
+timeago = "0.4"
+tokio = { version = "1.52", features = ["full"] }

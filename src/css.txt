@@ -30,6 +30,12 @@ h2.sec{margin:38px 0 6px;font-size:26px}
 .hist div.hot{opacity:1;background:var(--win)}
 .taglist{columns:2;margin:6px 0 20px}
 .taglist li{margin:0 0 6px 18px}
+.slide{display:inline-flex;position:relative;width:120px;height:10px;background:#eee;border:1px solid var(--line);vertical-align:middle}
+.slide .fill{position:absolute;top:0;bottom:0}
+.slide .fill.l{right:50%;background:var(--acc)}
+.slide .fill.r{left:50%;background:var(--win)}
+.pager{display:flex;gap:14px;align-items:center;margin:16px 0}
+.pager a{border:1px solid var(--line);padding:4px 12px;border-radius:2px}
 footer{border-top:1px solid var(--line);margin-top:60px;padding-top:16px;color:var(--mut);font-size:14px}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 @media(max-width:640px){.duet{flex-direction:column}.taglist{columns:1}}
