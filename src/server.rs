@@ -157,6 +157,7 @@ struct TagEntry {
 
 #[derive(Debug, Clone)]
 struct ScoredItem {
+    id: String,
     rank: String,
     title: String,
     owner: String,
@@ -255,6 +256,32 @@ struct UserTemplate<'a> {
 }
 
 #[derive(Template)]
+#[template(path = "item.html")]
+struct ItemTemplate<'a> {
+    title: &'a str,
+    css: &'a str,
+    item_title: String,
+    owner: String,
+    owner_page: String,
+    created: String,
+    created_title: String,
+    score: String,
+    votes: Vec<ItemVoteView>,
+    tags: Vec<TagEntry>,
+}
+
+#[derive(Debug, Clone)]
+struct ItemVoteView {
+    when: String,
+    when_title: String,
+    voter: String,
+    voter_slug: String,
+    left: String,
+    right: String,
+    magnitude: i32,
+}
+
+#[derive(Template)]
 #[template(path = "votes.html")]
 struct VotesTemplate<'a> {
     title: &'a str,
@@ -269,6 +296,7 @@ async fn index(State(state): State<AppState>) -> Result<Html<String>, StatusCode
     let mut ranked: Vec<(&String, &f64)> = state.score_of.iter().collect();
     ranked.sort_by(|a, b| b.1.partial_cmp(a.1).unwrap());
     let score_item = |id: &String, s: &f64| ScoredItem {
+        id: id.clone(),
         rank: String::new(),
         title: state
             .items
@@ -289,10 +317,10 @@ async fn index(State(state): State<AppState>) -> Result<Html<String>, StatusCode
     };
     let (top1, top2) = match ranked.len() {
         0 => (
-            ScoredItem { rank: String::new(), title: "—".into(), owner: String::new(), page: String::new(), score: "—".into() },
-            ScoredItem { rank: String::new(), title: "—".into(), owner: String::new(), page: String::new(), score: "—".into() },
+            ScoredItem { id: String::new(), rank: String::new(), title: "—".into(), owner: String::new(), page: String::new(), score: "—".into() },
+            ScoredItem { id: String::new(), rank: String::new(), title: "—".into(), owner: String::new(), page: String::new(), score: "—".into() },
         ),
-        1 => (score_item(ranked[0].0, ranked[0].1), ScoredItem { rank: String::new(), title: "—".into(), owner: String::new(), page: String::new(), score: "—".into() }),
+        1 => (score_item(ranked[0].0, ranked[0].1), ScoredItem { id: String::new(), rank: String::new(), title: "—".into(), owner: String::new(), page: String::new(), score: "—".into() }),
         _ => (score_item(ranked[0].0, ranked[0].1), score_item(ranked[1].0, ranked[1].1)),
     };
     let tags: Vec<TagEntry> = {
@@ -422,42 +450,90 @@ fn safe_slug(name: &str) -> String {
         .to_lowercase()
 }
 
+async fn rankings_redirect() -> axum::response::Redirect {
+    axum::response::Redirect::to("/tags")
+}
+
+async fn item_page(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> Result<Html<String>, StatusCode> {
+    let item = state.items.get(&id).cloned().ok_or(StatusCode::NOT_FOUND)?;
+    let score = state
+        .score_of
+        .get(&id)
+        .copied()
+        .map(|s| format!("{:.4}", s))
+        .unwrap_or_else(|| "—".into());
+    let tags: Vec<TagEntry> = state
+        .item2tags
+        .get(&id)
+        .map(|tag_ids| {
+            tag_ids
+                .iter()
+                .filter_map(|tid| state.tags.get(tid))
+                .map(|t| TagEntry {
+                    slug: t.slug.clone(),
+                    page: safe_slug(&t.slug),
+                    title: t.title.clone(),
+                    items: state.tag2items.get(&t.id).map(|x| x.len()).unwrap_or(0),
+                    owner: t.owner.clone(),
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    let title_of = |vid: &str| {
+        state
+            .items
+            .get(vid)
+            .map(|i| i.title.clone())
+            .unwrap_or_else(|| vid.to_string())
+    };
+    let votes: Vec<ItemVoteView> = recent_votes_all(&state.db)
+        .into_iter()
+        .filter(|v| v.a == id || v.b == id)
+        .map(|v| ItemVoteView {
+            when: human_day(v.ts),
+            when_title: {
+                let dt = chrono::DateTime::from_timestamp(v.ts, 0).unwrap();
+                dt.format("%Y-%m-%d %H:%M").to_string()
+            },
+            voter_slug: safe_slug(&v.pseudonym),
+            left: title_of(&v.a),
+            right: title_of(&v.b),
+            magnitude: v.ratio_left,
+            voter: v.pseudonym,
+        })
+        .collect::<Vec<_>>();
+    let t = ItemTemplate {
+        title: &format!("{} — sorter archive", item.title),
+        css: crate::SITE_CSS,
+        item_title: item.title.clone(),
+        owner: item.owner.clone(),
+        owner_page: safe_slug(&item.owner),
+        created: human_day(item.ts),
+        created_title: {
+            let dt = chrono::DateTime::from_timestamp(item.ts, 0).unwrap();
+            dt.format("%Y-%m-%d %H:%M").to_string()
+        },
+        score,
+        votes,
+        tags,
+    };
+    Ok(Html(t.render().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?))
+}
+
 pub fn app(state: AppState) -> Router {
     Router::new()
         .route("/", get(index))
-        .route("/rankings", get(rankings))
+        .route("/rankings", get(rankings_redirect))
         .route("/tags", get(tags_index))
         .route("/tags/{slug}", get(tag_page))
         .route("/users", get(users_index))
         .route("/users/{name}", get(user_page))
+        .route("/items/{id}", get(item_page))
         .route("/votes", get(votes_page))
         .with_state(state)
-}
-
-async fn rankings(State(state): State<AppState>) -> Result<Html<String>, StatusCode> {
-    let mut ranked: Vec<(&String, &f64)> = state.score_of.iter().collect();
-    ranked.sort_by(|a, b| b.1.partial_cmp(a.1).unwrap());
-    ranked.truncate(100);
-    let rows = ranked
-        .into_iter()
-        .map(|(id, s)| {
-            let item = state.items.get(id);
-            ScoredItem {
-                rank: String::new(),
-                title: item.map(|i| i.title.clone()).unwrap_or_else(|| id.clone()),
-                owner: item.map(|i| i.owner.clone()).unwrap_or_default(),
-                page: item.map(|i| safe_slug(&i.owner)).unwrap_or_default(),
-                score: format!("{:.4}", s),
-            }
-        })
-        .collect();
-    let t = RankingsTemplate {
-        title: "rankings — sorter archive",
-        css: crate::SITE_CSS,
-        item_count: state.items.len(),
-        rows,
-    };
-    Ok(Html(t.render().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?))
 }
 
 async fn tags_index(State(state): State<AppState>) -> Result<Html<String>, StatusCode> {
@@ -499,11 +575,11 @@ async fn tag_page(
     });
     let rows: Vec<ScoredItem> = ids
         .iter()
-        .take(200)
         .map(|id| {
             let item = state.items.get(id);
             let s = state.score_of.get(id).copied().unwrap_or(0.0);
             ScoredItem {
+                id: id.clone(),
                 rank: String::new(),
                 title: item.map(|i| i.title.clone()).unwrap_or_else(|| id.clone()),
                 owner: item.map(|i| i.owner.clone()).unwrap_or_default(),

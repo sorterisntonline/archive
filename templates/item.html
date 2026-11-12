@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="sec">{{ item_title }}</h2>
+<table><tr><th>posted by</th><th>posted</th><th>score</th></tr>
+<tr><td><a href="users/{{ owner_page }}">{{ owner }}</a></td><td><span title="{{ created_title }}">{{ created }}</span></td><td class="num">{{ score }}</td></tr>
+</table>
+{% if !tags.is_empty() %}
+<h2 class="sec">Categories</h2>
+<ul>
+{% for t in tags %}
+<li><a href="tags/{{ t.page }}">{{ t.title }}</a></li>
+{% endfor %}
+</ul>
+{% endif %}
+<h2 class="sec">Votes involving this item ({{ votes.len() }})</h2>
+<table><tr><th>when</th><th>voter</th><th>pair</th><th>left&nbsp;<span class="mut">magnitude</span></th></tr>
+{% for v in votes %}
+<tr><td><span title="{{ v.when_title }}">{{ v.when }}</span></td><td><a href="users/{{ v.voter_slug }}">{{ v.voter }}</a></td><td>{{ v.left }} vs {{ v.right }}</td><td class="num">{{ v.magnitude }}</td></tr>
+{% endfor %}
+</table>
+{% endblock %}

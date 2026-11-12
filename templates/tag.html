@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block content %}
-<h2 class="sec">{{ tag_title }}</h2><p class="lede">{{ item_count }} items, best first.</p>
-<table><tr><th class="num">rank</th><th>item</th><th>posted by</th></tr>
+<h2 class="sec">{{ tag_title }}</h2>
+<table><tr><th>item</th><th>posted by</th><th class="num">score</th></tr>
 {% for r in rows %}
-<tr><td class="num">{{ r.rank }}</td><td>{{ r.title }}</td><td class="mut">{{ r.owner }}</td></tr>
+<tr><td><a href="items/{{ r.id }}">{{ r.title }}</a></td><td class="mut"><a href="users/{{ r.page }}">{{ r.owner }}</a></td><td class="num">{{ r.score }}</td></tr>
 {% endfor %}
 </table>
 {% endblock %}

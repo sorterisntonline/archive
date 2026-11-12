@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="duet">
- <div class="side"><div class="t"><a href="rankings.html">{{ top1.title }}</a></div><div class="mut small"><a href="users/{{ top1.page }}">{{ top1.owner }}</a> · score {{ top1.score }}</div></div>
+ <div class="side"><div class="t"><a href="items/{{ top1.id }}">{{ top1.title }}</a></div><div class="mut small"><a href="users/{{ top1.page }}">{{ top1.owner }}</a> · score {{ top1.score }}</div></div>
  <div class="vs">vs</div>
- <div class="side"><div class="t"><a href="rankings.html">{{ top2.title }}</a></div><div class="mut small"><a href="users/{{ top2.page }}">{{ top2.owner }}</a> · score {{ top2.score }}</div></div>
+ <div class="side"><div class="t"><a href="items/{{ top2.id }}">{{ top2.title }}</a></div><div class="mut small"><a href="users/{{ top2.page }}">{{ top2.owner }}</a> · score {{ top2.score }}</div></div>
 </div>
 <div class="stat">
  <div><b>{{ user_count }}</b><span>registered users</span></div>
@@ -14,13 +14,13 @@
 <h2 class="sec">Categories</h2>
 <ul class="taglist">
 {% for t in tags %}
-<li><a href="tags/{{ t.page }}.html">{{ t.title }}</a> <span class="mut small">({{ t.items }})</span></li>
+<li><a href="tags/{{ t.page }}">{{ t.title }}</a> <span class="mut small">({{ t.items }})</span></li>
 {% endfor %}
 </ul>
 <h2 class="sec">Most active voters</h2>
 <table><tr><th>voter</th><th class="num">votes</th><th class="num">items posted</th></tr>
 {% for u in top_users %}
-<tr><td><a href="users/{{ u.page }}.html">{{ u.name }}</a></td><td class="num">{{ u.votes }}</td><td class="num">{{ u.items }}</td></tr>
+<tr><td><a href="users/{{ u.page }}">{{ u.name }}</a></td><td class="num">{{ u.votes }}</td><td class="num">{{ u.items }}</td></tr>
 {% endfor %}
 </table>
 {% endblock %}
