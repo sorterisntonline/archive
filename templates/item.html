@@ -13,9 +13,9 @@
 </ul>
 {% endif %}
 <h2 class="sec">Votes involving this item ({{ votes.len() }})</h2>
-<table><tr><th>when</th><th>voter</th><th>pair</th><th>left&nbsp;<span class="mut">magnitude</span></th></tr>
+<table><tr><th>when</th><th>voter</th><th>pair</th></tr>
 {% for v in votes %}
-<tr><td><span title="{{ v.when_title }}">{{ v.when }}</span></td><td><a href="users/{{ v.voter_slug }}">{{ v.voter }}</a></td><td>{{ v.left }} vs {{ v.right }}</td><td class="num">{{ v.magnitude }}</td></tr>
+<tr><td><span title="{{ v.when_title }}">{{ v.when }}</span></td><td><a href="users/{{ v.voter_slug }}">{{ v.voter }}</a></td><td>{{ v.left }} vs {{ v.right }} <span class="slide"><span class="fill l" style="width:{{ v.magnitude }}%"></span><span class="fill r" style="width:{{ v.magnitude }}"></span></span></td></tr>
 {% endfor %}
 </table>
 {% endblock %}

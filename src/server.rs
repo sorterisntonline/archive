@@ -584,7 +584,7 @@ async fn tag_page(
                 title: item.map(|i| i.title.clone()).unwrap_or_else(|| id.clone()),
                 owner: item.map(|i| i.owner.clone()).unwrap_or_default(),
                 page: item.map(|i| safe_slug(&i.owner)).unwrap_or_default(),
-                score: format!("{:.4}", s),
+                score: state.score_of.get(id).map(|s| format!("{:.4}", s)).unwrap_or_else(|| "—".into()),
             }
         })
         .collect();
