@@ -1,0 +1,30 @@
+name: deploy to fly.io
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: fly-deploy-archive
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: deploy sorter-archive
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: setup flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: deploy
+        run: flyctl deploy --remote-only --ha=false --strategy immediate --wait-timeout 600
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
