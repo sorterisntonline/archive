@@ -1,6 +1,4 @@
-FROM rust:1.88-bookworm AS build
-# sorter2 pins Rust 1.88; match it
-RUN rustup install 1.88.0 || true
+FROM rust:1.97-bookworm AS build
 WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src
