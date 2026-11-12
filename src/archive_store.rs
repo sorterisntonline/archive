@@ -27,6 +27,10 @@ pub struct ItemData {
     pub title: String,
     pub slug: String,
     pub owner: String,
+    #[serde(default)]
+    pub url: String,
+    #[serde(default)]
+    pub body: String,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -47,6 +51,15 @@ pub struct StoredVoteV1 {
     pub ratio_right: i32,
     pub pseudonym: String,
     pub trust_weight: f64,
+    #[serde(default)]
+    pub attribute: i32,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct AttributeData {
+    pub id: i32,
+    pub title: String,
+    pub owner: String,
 }
 
 impl From<VoteData> for StoredVoteV1 {
@@ -60,6 +73,7 @@ impl From<VoteData> for StoredVoteV1 {
             ratio_right: v.ratio_right,
             pseudonym: v.pseudonym,
             trust_weight: v.trust_weight,
+            attribute: 0,
         }
     }
 }
@@ -74,6 +88,7 @@ impl From<StoredVoteV1> for VoteData {
             ratio_right: v.ratio_right,
             pseudonym: v.pseudonym,
             trust_weight: v.trust_weight,
+            attribute: v.attribute,
         }
     }
 }
@@ -92,6 +107,7 @@ pub struct ArchiveStore {
     pub uuid_votes: Map<crate::reducer::UuidVoteKey, Leaf<StoredVoteV1>>,
     /// Most recent-first audit trail per actor for pagination.
     pub recent_votes: Map<String, List<Leaf<StoredVoteV1>>>,
+    pub attributes: Map<String, Leaf<AttributeData>>,
     /// Archive meta: import counters / version marker.
     pub meta: Map<String, Leaf<u64>>,
 }

@@ -34,6 +34,9 @@ h2.sec{margin:38px 0 6px;font-size:26px}
 .slide .fill{position:absolute;top:0;bottom:0}
 .slide .fill.l{right:50%;background:var(--acc)}
 .slide .fill.r{left:50%;background:var(--win)}
+.pair{display:flex;align-items:center;gap:10px}
+.pair .pl{flex:1;text-align:right}
+.pair .pr{flex:1}
 .pager{display:flex;gap:14px;align-items:center;margin:16px 0}
 .pager a{border:1px solid var(--line);padding:4px 12px;border-radius:2px}
 footer{border-top:1px solid var(--line);margin-top:60px;padding-top:16px;color:var(--mut);font-size:14px}

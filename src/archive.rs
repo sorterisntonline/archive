@@ -55,11 +55,33 @@ pub fn import(db: &Db, client: &mut Client) -> ImportReport {
                     title: item.title.clone(),
                     slug: item.slug.clone(),
                     owner: item.owner.clone(),
+                    url: item.url.clone(),
+                    body: item.body.clone(),
                 }),
         );
         let owner = item.owner.clone();
         batch.write(root.by_owner().key(&owner).key(&id).set(&true));
         n_items += 1;
+    }
+    for (id, title, owner) in {
+        let mut attrs: Vec<(i32, String, String)> = client
+            .query("SELECT id, title, owner FROM attributes", &[])
+            .unwrap()
+            .iter()
+            .map(|r| (r.get(0), r.get(1), r.get(2)))
+            .collect();
+        attrs.sort();
+        attrs
+    } {
+        batch.write(
+            root.attributes()
+                .key(&id.to_string())
+                .set(&crate::archive_store::AttributeData {
+                    id,
+                    title,
+                    owner,
+                }),
+        );
     }
     for tag in &dump.tags {
         batch.write(
@@ -92,6 +114,7 @@ pub fn import(db: &Db, client: &mut Client) -> ImportReport {
             ratio_right: v.ratio_right,
             pseudonym: v.owner.clone(),
             trust_weight: 1.0,
+            attribute: v.attribute,
         };
         scope.apply_vote(vote, &v.owner);
         let stored = StoredVoteV1 {
@@ -103,6 +126,7 @@ pub fn import(db: &Db, client: &mut Client) -> ImportReport {
             ratio_right: v.ratio_right,
             pseudonym: v.owner.clone(),
             trust_weight: 1.0,
+            attribute: v.attribute,
         };
         recent.entry(v.owner.clone()).or_default().push(stored);
     }

@@ -32,6 +32,7 @@ pub struct AppState {
     pub tag2items: HashMap<String, Vec<String>>, // tag id -> item ids
     pub owner2items: HashMap<String, Vec<String>>,
     pub users: Vec<String>,
+    pub attributes: Vec<(i32, String, String)>, // (id, title, owner)
 }
 
 fn human_day(ts: i64) -> String {
@@ -73,6 +74,7 @@ fn load_scores(db: &Db) -> (HashMap<String, f64>, Vec<String>) {
             ratio_right: stored.ratio_right,
             pseudonym: stored.pseudonym.clone(),
             trust_weight: stored.trust_weight,
+            attribute: stored.attribute,
         };
         scope.apply_vote(vote, &stored.pseudonym);
         let _ = key;
@@ -135,7 +137,15 @@ pub fn build_state(db: Db) -> AppState {
         .users()
         .keys(&db)
         .expect("scan users");
-    AppState { db, score_of, items, tags, item2tags, tag2items, owner2items, users }
+    let mut attributes: Vec<(i32, String, String)> = root
+        .attributes()
+        .iter(&db)
+        .expect("scan attributes")
+        .into_iter()
+        .map(|(_, a)| (a.id, a.title, a.owner))
+        .collect();
+    attributes.sort_by_key(|(id, _, _)| *id);
+    AppState { db, score_of, items, tags, item2tags, tag2items, owner2items, users, attributes }
 }
 
 #[derive(Debug, Clone)]
@@ -166,9 +176,12 @@ struct ScoredItem {
 }
 
 #[derive(Debug, Clone)]
-struct UserItemView {
-    rank: String,
+struct PlainItem {
+    id: String,
     title: String,
+    slug: String,
+    created: String,
+    created_title: String,
 }
 
 #[derive(Debug, Clone)]
@@ -182,6 +195,7 @@ struct VoteView {
     left_bar: String,
     right_bar: String,
     magnitude: i32,
+    attribute: String,
 }
 
 #[derive(Debug, Clone)]
@@ -244,15 +258,26 @@ struct UsersTemplate<'a> {
     rows: Vec<TaggedRow>,
 }
 
+#[derive(serde::Deserialize)]
+struct UserPageQuery {
+    items_page: Option<usize>,
+    votes_page: Option<usize>,
+}
+
 #[derive(Template)]
 #[template(path = "user.html")]
 struct UserTemplate<'a> {
     title: &'a str,
     css: &'a str,
     user_name: String,
-    votes: usize,
-    items: usize,
-    rows: Vec<UserItemView>,
+    items_rows: Vec<PlainItem>,
+    items_page: usize,
+    items_pages: usize,
+    vote_rows: Vec<VoteView>,
+    votes_page: usize,
+    votes_pages: usize,
+    tags_created: Vec<TagEntry>,
+    attributes: Vec<(i32, String)>,
 }
 
 #[derive(Template)]
@@ -290,6 +315,14 @@ struct VotesTemplate<'a> {
     page: usize,
     pages: usize,
     rows: Vec<VoteView>,
+    attributes: Vec<(i32, String, bool)>,
+    attribute: Option<i32>,
+}
+
+#[derive(serde::Deserialize)]
+struct VotesQuery {
+    page: Option<usize>,
+    attribute: Option<i32>,
 }
 
 async fn index(State(state): State<AppState>) -> Result<Html<String>, StatusCode> {
@@ -351,7 +384,6 @@ async fn index(State(state): State<AppState>) -> Result<Html<String>, StatusCode
             })
             .collect();
         v.sort_by(|a, b| b.votes.cmp(&a.votes));
-        v.truncate(20);
         v
     };
     let hist_days = histogram(&state.db);
@@ -622,6 +654,7 @@ async fn users_index(State(state): State<AppState>) -> Result<Html<String>, Stat
 async fn user_page(
     State(state): State<AppState>,
     Path(name): Path<String>,
+    Query(query): Query<UserPageQuery>,
 ) -> Result<Html<String>, StatusCode> {
     let real = state
         .users
@@ -629,46 +662,108 @@ async fn user_page(
         .find(|u| safe_slug(u) == name)
         .cloned()
         .ok_or(StatusCode::NOT_FOUND)?;
+    // items submitted, newest first
     let mut ids = state.owner2items.get(&real).cloned().unwrap_or_default();
-    ids.sort_by(|a, b| {
-        let sa = state.score_of.get(a).copied().unwrap_or(0.0);
-        let sb = state.score_of.get(b).copied().unwrap_or(0.0);
-        sb.partial_cmp(&sa).unwrap()
-    });
-    let rows: Vec<UserItemView> = ids
+    ids.sort_by_key(|id| std::cmp::Reverse(state.items.get(id).map(|i| i.ts).unwrap_or(0)));
+    let (items_page, items_pages, id_slice) = paginate(ids.len(), query.items_page.unwrap_or(1));
+    let items_rows: Vec<PlainItem> = id_slice
         .iter()
-        .take(100)
-        .map(|id| UserItemView {
-            rank: {
-                let s = state.score_of.get(id).copied().unwrap_or(0.0);
-                format!("{:.4}", s)
-            },
-            title: state
-                .items
-                .get(id)
-                .map(|i| i.title.clone())
-                .unwrap_or_else(|| id.clone()),
+        .map(|idx| {
+            let id = &ids[*idx];
+            let i = state.items.get(id);
+            PlainItem {
+                id: id.clone(),
+                title: i.map(|x| x.title.clone()).unwrap_or_else(|| id.clone()),
+                slug: i.map(|x| x.slug.clone()).unwrap_or_default(),
+                created: i.map(|x| human_day(x.ts)).unwrap_or_default(),
+                created_title: i
+                    .map(|x| {
+                        let dt = chrono::DateTime::from_timestamp(x.ts, 0).unwrap();
+                        dt.format("%Y-%m-%d %H:%M").to_string()
+                    })
+                    .unwrap_or_default(),
+            }
         })
         .collect();
-    let root = ArchiveStore::root();
+    // votes submitted, newest first, split by attribute in the template
+    let votes = recent_votes_all_user(&state.db, &real);
+    let (votes_page, votes_pages, vote_slice) = paginate(votes.len(), query.votes_page.unwrap_or(1));
+    let title_of = |vid: &str| {
+        state
+            .items
+            .get(vid)
+            .map(|i| i.title.clone())
+            .unwrap_or_else(|| vid.to_string())
+    };
+    let vote_rows: Vec<VoteView> = vote_slice
+        .iter()
+        .map(|idx| {
+            let v = &votes[*idx];
+            VoteView {
+            when: human_day(v.ts),
+            when_title: {
+                let dt = chrono::DateTime::from_timestamp(v.ts, 0).unwrap();
+                dt.format("%Y-%m-%d %H:%M").to_string()
+            },
+            voter: v.pseudonym.clone(),
+            voter_slug: safe_slug(&v.pseudonym),
+            left: title_of(&v.a),
+            right: title_of(&v.b),
+            left_bar: magnitude_bar(v.ratio_left),
+            right_bar: magnitude_bar(v.ratio_right),
+            magnitude: v.ratio_left,
+            attribute: state
+                .attributes
+                .iter()
+                .find(|(id, _, _)| *id == v.attribute)
+                .map(|(_, t, _)| t.clone())
+                .unwrap_or_else(|| v.attribute.to_string()),
+        }
+        })
+        .collect();
+    let tags_created: Vec<TagEntry> = state
+        .tags
+        .values()
+        .filter(|t| t.owner == real)
+        .map(|t| TagEntry {
+            slug: t.slug.clone(),
+            page: safe_slug(&t.slug),
+            title: t.title.clone(),
+            items: state.tag2items.get(&t.id).map(|x| x.len()).unwrap_or(0),
+            owner: t.owner.clone(),
+        })
+        .collect();
+    let attributes: Vec<(i32, String)> = state
+        .attributes
+        .iter()
+        .map(|(id, title, _)| (*id, title.clone()))
+        .collect();
     let t = UserTemplate {
         title: &format!("{} — sorter archive", real),
         css: crate::SITE_CSS,
         user_name: real.clone(),
-        votes: recent_count(&state.db, &real),
-        items: ids.len(),
-        rows,
+        items_rows,
+        items_page,
+        items_pages,
+        vote_rows,
+        votes_page,
+        votes_pages,
+        tags_created,
+        attributes,
     };
     Ok(Html(t.render().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?))
 }
 
 async fn votes_page(
     State(state): State<AppState>,
-    Query(query): Query<PageQuery>,
+    Query(query): Query<VotesQuery>,
 ) -> Result<Html<String>, StatusCode> {
     let page = query.page.unwrap_or(1).max(1);
     let mut all = recent_votes_all(&state.db);
-    all.sort_by_key(|v| v.ts);
+    if let Some(attr) = query.attribute {
+        all.retain(|v| v.attribute == attr);
+    }
+    all.sort_by_key(|v| std::cmp::Reverse(v.ts));
     let total = all.len();
     let pages = (total + VOTES_PER_PAGE - 1) / VOTES_PER_PAGE;
     let page = page.min(pages.max(1));
@@ -697,8 +792,19 @@ async fn votes_page(
                 left_bar: magnitude_bar(v.ratio_left),
                 right_bar: magnitude_bar(v.ratio_right),
                 magnitude: v.ratio_left,
+                attribute: state
+                    .attributes
+                    .iter()
+                    .find(|(id, _, _)| *id == v.attribute)
+                    .map(|(_, t, _)| t.clone())
+                    .unwrap_or_else(|| v.attribute.to_string()),
             }
         })
+        .collect();
+    let attributes: Vec<(i32, String, bool)> = state
+        .attributes
+        .iter()
+        .map(|(id, title, _)| (*id, title.clone(), query.attribute == Some(*id)))
         .collect();
     let t = VotesTemplate {
         title: "votes — sorter archive",
@@ -707,6 +813,8 @@ async fn votes_page(
         page,
         pages,
         rows,
+        attributes,
+        attribute: query.attribute,
     };
     Ok(Html(t.render().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?))
 }
@@ -718,3 +826,26 @@ pub fn listen_addr() -> SocketAddr {
         .unwrap_or(8080);
     SocketAddr::from(([0, 0, 0, 0], port))
 }
+
+fn paginate(total: usize, page: usize) -> (usize, usize, Vec<usize>) {
+    // returns (page, pages, indices slice)
+    let pages = (total + USER_PER_PAGE - 1) / USER_PER_PAGE;
+    let page = page.min(pages.max(1));
+    let start = (page - 1) * USER_PER_PAGE;
+    let end = (start + USER_PER_PAGE).min(total);
+    (page, pages, (start..end).collect())
+}
+
+fn recent_votes_all_user(db: &Db, user: &str) -> Vec<StoredVoteV1> {
+    let root = ArchiveStore::root();
+    let mut v = root
+        .recent_votes()
+        .key(&user.to_string())
+        .iter(db)
+        .unwrap_or_default();
+    v.sort_by_key(|x| x.ts);
+    v.reverse();
+    v
+}
+
+const USER_PER_PAGE: usize = 100;

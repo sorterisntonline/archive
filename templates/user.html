@@ -1,10 +1,32 @@
 {% extends "base.html" %}
 {% block content %}
 <h2 class="sec">{{ user_name }}</h2>
-<p class="lede">{{ votes }} votes cast, {{ items }} items posted. Top items:</p>
-<table><tr><th class="num">rank</th><th>item</th></tr>
-{% for r in rows %}
-<tr><td class="num">{{ r.rank }}</td><td>{{ r.title }}</td></tr>
+<h2 class="sec">Items submitted ({{ items_rows.len() }} shown, page {{ items_page }} of {{ items_pages }})</h2>
+<table><tr><th>item</th><th>posted</th></tr>
+{% for r in items_rows %}
+<tr><td><a href="items/{{ r.id }}">{{ r.title }}</a></td><td><span title="{{ r.created_title }}">{{ r.created }}</span></td></tr>
 {% endfor %}
 </table>
+<div class="pager">
+{% if items_page > 1 %}<a href="?items_page={{ items_page - 1 }}">Previous</a>{% endif %}
+<span class="mut small">Page {{ items_page }} of {{ items_pages }}</span>
+{% if items_page < items_pages %}<a href="?items_page={{ items_page + 1 }}">Next</a>{% endif %}
+</div>
+<h2 class="sec">Tags created</h2>
+<ul>
+{% for t in tags_created %}
+<li><a href="tags/{{ t.page }}">{{ t.title }}</a></li>
+{% endfor %}
+</ul>
+<h2 class="sec">Votes submitted ({{ votes_pages }} pages)</h2>
+<table><tr><th>when</th><th>matchup</th><th>attribute</th></tr>
+{% for v in vote_rows %}
+<tr><td><span title="{{ v.when_title }}">{{ v.when }}</span></td><td><span class="pair"><span class="pl">{{ v.left }}</span><span class="slide"><span class="fill l" style="width:{{ v.magnitude }}%"></span><span class="fill r" style="width:{{ v.magnitude }}"></span></span><span class="pr">{{ v.right }}</span></span></td><td>{{ v.attribute }}</td></tr>
+{% endfor %}
+</table>
+<div class="pager">
+{% if votes_page > 1 %}<a href="?votes_page={{ votes_page - 1 }}">Previous</a>{% endif %}
+<span class="mut small">Page {{ votes_page }} of {{ votes_pages }}</span>
+{% if votes_page < votes_pages %}<a href="?votes_page={{ votes_page + 1 }}">Next</a>{% endif %}
+</div>
 {% endblock %}

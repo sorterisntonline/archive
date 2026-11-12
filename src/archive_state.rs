@@ -21,6 +21,8 @@ pub struct Item {
     pub title: String,
     pub slug: String,
     pub owner: String,
+    pub url: String,
+    pub body: String,
     pub ts: i64,
     pub ts_naive: String,
 }
@@ -39,6 +41,7 @@ pub struct Vote {
     pub right: String,
     pub ratio_left: i32,
     pub ratio_right: i32,
+    pub attribute: i32,
     pub ts: i64,
     pub ts_naive: String,
 }
@@ -52,7 +55,7 @@ pub fn load(client: &mut Client) -> Dump {
         .collect();
     let items: Vec<Item> = client
         .query(
-            "SELECT id::text, title, slug, owner, floor(extract(epoch from created_at))::bigint, created_at::text FROM items",
+            "SELECT id::text, title, slug, owner, coalesce(url,''), coalesce(body,''), floor(extract(epoch from created_at))::bigint, created_at::text FROM items",
             &[],
         )
         .unwrap()
@@ -62,8 +65,10 @@ pub fn load(client: &mut Client) -> Dump {
             title: r.get(1),
             slug: r.get(2),
             owner: r.get(3),
-            ts: r.get(4),
-            ts_naive: r.get(5),
+            url: r.get(4),
+            body: r.get(5),
+            ts: r.get(6),
+            ts_naive: r.get(7),
         })
         .collect();
     let tags: Vec<Tag> = client
@@ -86,7 +91,7 @@ pub fn load(client: &mut Client) -> Dump {
         .collect();
     let votes: Vec<Vote> = client
         .query(
-            "SELECT owner, left_item_id::text, right_item_id::text, magnitude, floor(extract(epoch from created_at))::bigint, created_at::text FROM votes ORDER BY created_at",
+            "SELECT owner, left_item_id::text, right_item_id::text, magnitude, attribute, floor(extract(epoch from created_at))::bigint, created_at::text FROM votes ORDER BY created_at",
             &[],
         )
         .unwrap()
@@ -97,8 +102,9 @@ pub fn load(client: &mut Client) -> Dump {
             right: r.get(2),
             ratio_left: r.get(3),
             ratio_right: 100 - r.get::<_, i32>(3),
-            ts: r.get(4),
-            ts_naive: r.get(5),
+            attribute: r.get(4),
+            ts: r.get(5),
+            ts_naive: r.get(6),
         })
         .collect();
     Dump { users, items, tags, members, votes }

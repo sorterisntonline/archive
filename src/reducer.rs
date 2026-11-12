@@ -32,6 +32,8 @@ pub struct VoteData {
     pub ratio_right: i32,
     pub pseudonym: String,
     pub trust_weight: f64,
+    /// v1 vote attribute dimension (rankings stay single-walk; shown in UI).
+    pub attribute: i32,
 }
 
 impl VoteData {
@@ -44,6 +46,7 @@ impl VoteData {
         ratio_right: i32,
         pseudonym: String,
         trust_weight: f64,
+        attribute: i32,
     ) -> Option<Self> {
         let a = ItemId::from_storage(a)?;
         let b = ItemId::from_storage(b)?;
@@ -58,6 +61,7 @@ impl VoteData {
             ratio_right,
             pseudonym,
             trust_weight,
+            attribute,
         })
     }
 }

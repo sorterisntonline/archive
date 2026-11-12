@@ -1,9 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
 <h2 class="sec">Votes</h2>
-<table><tr><th>when</th><th>voter</th><th>pair</th><th>left&nbsp;<span class="mut">magnitude</span></th></tr>
+<p>{% for a in attributes %}<a href="?attribute={{ a.0 }}">{{ a.1 }}</a>{% if !a.2 %} · {% endif %}{% endfor %}</p>
+<table><tr><th>when</th><th>voter</th><th>matchup</th><th>attribute</th></tr>
 {% for v in rows %}
-<tr><td><span title="{{ v.when_title }}">{{ v.when }}</span></td><td><a href="users/{{ v.voter_slug }}">{{ v.voter }}</a></td><td>{{ v.left }} vs {{ v.right }}</td><td><span class="slide"><span class="fill l" style="width:{{ v.magnitude }}%"></span><span class="fill r" style="width:{{ v.magnitude }}"></span></span></td></tr>
+<tr><td><span title="{{ v.when_title }}">{{ v.when }}</span></td><td><a href="users/{{ v.voter_slug }}">{{ v.voter }}</a></td><td><span class="pair"><span class="pl">{{ v.left }}</span><span class="slide"><span class="fill l" style="width:{{ v.magnitude }}%"></span><span class="fill r" style="width:{{ v.magnitude }}"></span></span><span class="pr">{{ v.right }}</span></span></td><td>{{ v.attribute }}</td></tr>
 {% endfor %}
 </table>
 <div class="pager">
