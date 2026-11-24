@@ -3,7 +3,7 @@
 <h2 class="sec">{{ tag_title }}</h2>
 <table><tr><th>item</th><th>posted by</th><th class="num">score</th></tr>
 {% for r in rows %}
-<tr><td><a href="items/{{ r.id }}">{{ r.title }}</a></td><td class="mut"><a href="users/{{ r.page }}">{{ r.owner }}</a></td><td class="num">{{ r.score }}</td></tr>
+<tr><td><a href="/items/{{ r.id }}">{{ r.title }}</a></td><td class="mut"><a href="/users/{{ r.page }}">{{ r.owner }}</a></td><td class="num">{{ r.score }}</td></tr>
 {% endfor %}
 </table>
 {% endblock %}
